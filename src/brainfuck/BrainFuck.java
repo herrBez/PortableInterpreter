@@ -22,7 +22,7 @@ public class BrainFuck implements InterpreterInterface{
 	
 	public BrainFuck(){
 		pointer = 0;
-		array = new byte[1000];
+		array = new byte[20];
 		open = new Stack<Integer>();
 		pCounter = 0;
 	}
@@ -74,7 +74,17 @@ public class BrainFuck implements InterpreterInterface{
 		for(pCounter = 0; pCounter < cArray.length; ++pCounter){
 			char c = cArray[pCounter];
 			switch(c){
-			case '>': ++pointer; break;
+			case '>': 
+				/* The length of the array is adapted dinamically, in order to simulate
+				 * the infinity large band and contemporary to save space
+				 */
+				if(pointer == array.length - 1){
+					int oldLength = array.length;
+					byte [] copy = array.clone();
+					array = new byte[copy.length + 20];
+					System.arraycopy(copy, 0, array, 0, oldLength);
+				}
+				++pointer; break;
 			case '<': --pointer; break;
 			case '+': ++array[pointer]; break;
 			case '-': --array[pointer]; break;
