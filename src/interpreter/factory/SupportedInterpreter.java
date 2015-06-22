@@ -1,5 +1,5 @@
 package interpreter.factory;
 
 public enum SupportedInterpreter {
-	BRAINFUCK, ALPHUCK
+	BRAINFUCK, ALPHUCK, Ook
 }

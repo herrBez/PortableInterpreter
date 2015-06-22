@@ -1,4 +1,4 @@
-package InterpreterImpl;
+package interpreterImpl.brainfuck;
 
 import interfaces.InterpreterInterface;
 

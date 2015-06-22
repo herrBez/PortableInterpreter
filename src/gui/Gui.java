@@ -38,7 +38,6 @@ public class Gui extends Observable {
 	
 	private void initUI(String windowTitle) {
 		frame = new JFrame(windowTitle);
-		
 		final JFileChooser fc = new JFileChooser();
 		final JLabel interpreterLabel = new JLabel("Choose Interpreter");
 		final JLabel writeLabel = new JLabel("Write The code or Import one");
@@ -47,14 +46,13 @@ public class Gui extends Observable {
 		final JComboBox<SupportedInterpreter> combo = new JComboBox<SupportedInterpreter>(SupportedInterpreter.values());
 		final JButton executeButton = new JButton("Excute");
 		final JButton cleanButton = new JButton("Clean All");
-
 		final JLabel errorLabel = new JLabel("ErrorLog");
 		result = new JLabel();
-		inputArea = new JTextArea(30, 50);
+		inputArea = new JTextArea(20, 50);
 		inputArea.setLineWrap(true);
-		contentArea = new JTextArea(30, 50);
+		contentArea = new JTextArea(20, 50);
 		contentArea.setLineWrap(true);
-		errorArea = new JTextArea(30, 50);
+		errorArea = new JTextArea(20, 50);
 		errorArea.setLineWrap(true);
 		executeButton.addActionListener(new ActionListener() {
 			
@@ -141,15 +139,12 @@ public class Gui extends Observable {
 		pane.add(errorLabel);
 		JScrollPane errorPane = new JScrollPane(errorArea);
 		pane.add(errorPane);
-		
 		pane.add(result);
-
-		frame.setTitle(windowTitle);
 		
+		frame.setTitle(windowTitle);
 		frame.setLocationRelativeTo(null);
 		frame.pack();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
 	}
 	
 	
