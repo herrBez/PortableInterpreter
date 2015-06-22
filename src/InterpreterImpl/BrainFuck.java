@@ -1,13 +1,12 @@
-package brainfuck;
+package InterpreterImpl;
 
 import interfaces.InterpreterInterface;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.text.ParseException;
 import java.util.Stack;
+
+import staticutilities.ReadFile;
 /**
  *
  * @author mirko
@@ -19,55 +18,25 @@ public class BrainFuck implements InterpreterInterface{
 	/**Contains open parenthesises*/
 	private Stack<Integer> open; 
 	int pCounter;
-	
+	StringBuilder output;
+	StringBuilder errorLog;
 	public BrainFuck(){
 		pointer = 0;
 		array = new byte[20];
 		open = new Stack<Integer>();
 		pCounter = 0;
+		output = new StringBuilder();
+		errorLog = new StringBuilder();
 	}
 	
 	@Override
-	public void interpret(File f, String inputString)   {
-		BufferedReader br; 
-
-		try {
-			br = new BufferedReader(new FileReader(f));
-
-			StringBuilder sb = new StringBuilder();
-	        String line = br.readLine();
-
-	        while (line != null) {
-	            sb.append(line);
-	            sb.append(System.lineSeparator());
-	            line = br.readLine();
-	        }
-	        String everything = sb.toString();
-	        br.close();
-	        interpret(everything, inputString);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
-		
-		
+	public boolean interpret(File f, String inputString)   {
+		String s = ReadFile.readFile(f, false);
+		return interpret(s, inputString);
 	}
 	
 	
-	
-	void printState(char[] cArray, int pCounter){
-	
-		StringBuilder sb = new StringBuilder("INSTRUCTION:" + pCounter + "/" + (cArray.length-1) + "[");
-		
-		for(int i = 0; i < 20; i++){
-			sb.append(array[i] + ",");
-		}
-		sb.append("]");
-		
-		System.out.println(sb);
-	}
+
 	
 	private int interpret(char [] cArray, String input, Stack<Integer> open) {
 		int inputIndex = 0;
@@ -89,7 +58,7 @@ public class BrainFuck implements InterpreterInterface{
 			case '+': ++array[pointer]; break;
 			case '-': --array[pointer]; break;
 			case ',': array[pointer] = (byte) input.charAt(inputIndex++); break;
-			case '.': System.out.print((char) array[pointer]); break;
+			case '.': output.append((char) array[pointer]); break;
 			case '[':
 				open.push(pCounter);
 				if(array[pointer] == 0){
@@ -125,27 +94,44 @@ public class BrainFuck implements InterpreterInterface{
 			switch(c){
 			case '[': open.push(i); break;
 			case ']': 
-			if(open.isEmpty()) 
-				throw new ParseException("Position: " + i + " Close parenthesis without an open one", 0);
+			if(open.isEmpty()) {
+				errorLog.append("Position: " + i + " Close parenthesis without an open one");
+				throw new ParseException("Position: " + i + " Close parenthesis without an open one", i);
+			}
 			else 
 				open.pop();
 			}
 		}
 	}
 	
+	public String getOutput(){
+		return output.toString();
+		
+	}
+	
 	@Override
-	public void interpret(String s, String input) throws ParseException {
+	public boolean interpret(String s, String input)  {
 		pCounter = 0;
 		if(input == null)
 			input = "";
 		char [] cArray = s.toCharArray();
+		try {
 		parse(cArray);
+		} catch(ParseException pe){
+			return false;
+		}
 		interpret(cArray, input, open);
+		return true;
 	}
 
 	@Override
 	public void parse(String s) throws ParseException {
 		parse(s.toCharArray());
+	}
+
+	@Override
+	public String getErrorMessage() {
+		return errorLog.toString();
 	}
 
 	

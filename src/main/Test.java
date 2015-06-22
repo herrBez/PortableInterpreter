@@ -1,14 +1,10 @@
 package main;
 
-import java.text.ParseException;
-
-import interfaces.InterpreterInterface;
-import brainfuck.BrainFuck;
+import gui.Gui;
+import controller.Controller;
 
 public class Test {
-	public static void main(String[] args) throws ParseException {
-		InterpreterInterface i = new BrainFuck();
-		//i.interpret("++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.",null);
-		i.interpret("++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.", null);
+	public static void main(String[] args)  {
+			new Controller(new Gui("Start"));
 	}
 }
