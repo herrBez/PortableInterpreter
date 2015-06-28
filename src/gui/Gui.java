@@ -103,7 +103,11 @@ public class Gui extends Observable {
 		                System.out.println("I will notify the observer");
 		               
 		                setChanged();
-		                notifyObservers(file);
+		                if(combo.getSelectedItem() == SupportedInterpreter.CHIP8)
+		                	notifyObservers(new NotifierObject(file, true));
+		                else
+		                	notifyObservers(new NotifierObject(file, true));
+
 		                
 		                
 		            } else {
@@ -149,7 +153,9 @@ public class Gui extends Observable {
 	
 	
 	public void putText(String s){
-		contentArea.setText(s);
+		
+			contentArea.setText(s);
+		
 	}
 	
 	public void setVisible(boolean flag){
