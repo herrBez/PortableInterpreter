@@ -1,6 +1,5 @@
 package gui;
 
-
 import interfaces.InterpreterInterface;
 import interpreter.factory.InterpreterFactory;
 import interpreter.factory.SupportedInterpreter;
@@ -10,8 +9,14 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Observable;
+import java.util.Scanner;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -25,17 +30,17 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
 public class Gui extends Observable {
-	
+
 	private JFrame frame;
 	private JTextArea contentArea;
 	private JTextArea inputArea;
 	private JTextArea errorArea;
 	private JLabel result;
-	
+
 	public Gui(String windowTitle) {
 		initUI(windowTitle);
 	}
-	
+
 	private void initUI(String windowTitle) {
 		frame = new JFrame(windowTitle);
 		final JFileChooser fc = new JFileChooser();
@@ -43,7 +48,8 @@ public class Gui extends Observable {
 		final JLabel writeLabel = new JLabel("Write The code or Import one");
 		final JLabel outputLabel = new JLabel("Output:");
 		final JLabel inputLabel = new JLabel("Input:");
-		final JComboBox<SupportedInterpreter> combo = new JComboBox<SupportedInterpreter>(SupportedInterpreter.values());
+		final JComboBox<SupportedInterpreter> combo = new JComboBox<SupportedInterpreter>(
+				SupportedInterpreter.values());
 		final JButton executeButton = new JButton("Excute");
 		final JButton cleanButton = new JButton("Clean All");
 		final JLabel errorLabel = new JLabel("ErrorLog");
@@ -55,21 +61,23 @@ public class Gui extends Observable {
 		errorArea = new JTextArea(20, 50);
 		errorArea.setLineWrap(true);
 		executeButton.addActionListener(new ActionListener() {
-			
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				InterpreterInterface i = InterpreterFactory.createInterpreter((SupportedInterpreter)combo.getSelectedItem());
-				
+				InterpreterInterface i = InterpreterFactory
+						.createInterpreter((SupportedInterpreter) combo
+								.getSelectedItem());
+
 				i.interpret(contentArea.getText(), inputArea.getText());
 				System.out.println(i.getOutput());
 				result.setText(i.getOutput());
 				errorArea.setText(i.getErrorMessage());
-				
+
 			}
 		});
-		
+
 		cleanButton.addActionListener(new ActionListener() {
-			
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				result.setText("");
@@ -78,9 +86,6 @@ public class Gui extends Observable {
 				contentArea.setText("");
 			}
 		});
-		
-		
-		
 
 		JMenuBar menubar = new JMenuBar();
 
@@ -89,45 +94,107 @@ public class Gui extends Observable {
 
 		JMenu imp = new JMenu("Open");
 		imp.setMnemonic(KeyEvent.VK_M);
-		
-		JMenuItem importCode = new JMenuItem("Import Code");
-		importCode.addActionListener(new ActionListener() {
-			
+
+		JMenu exp = new JMenu("Export");
+		exp.setMnemonic(KeyEvent.VK_M);
+
+		JMenuItem exportCode = new JMenuItem("Export Code");
+		exportCode.addActionListener(new ActionListener() {
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				int returnVal = fc.showOpenDialog(frame);
-				 if (returnVal == JFileChooser.APPROVE_OPTION) {
-		                File file = fc.getSelectedFile();
-		                System.out.println(file.getAbsolutePath());
-		                System.out.println("Opening: " + file.getName());
-		                System.out.println("I will notify the observer");
-		               
-		                setChanged();
-		                if(combo.getSelectedItem() == SupportedInterpreter.CHIP8)
-		                	notifyObservers(new NotifierObject(file, true));
-		                else
-		                	notifyObservers(new NotifierObject(file, true));
 
-		                
-		                
-		            } else {
-		                System.out.println("Open command cancelled by user." );
-		            }
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					File file = fc.getSelectedFile();
+					if (!file.exists() && !file.isDirectory())
+						file = new File(file.getAbsolutePath());
+
+					System.out.println(file.getAbsolutePath());
+					System.out.println("Opening: " + file.getName());
+					String content = contentArea.getText();
+					if (combo.getSelectedItem() == SupportedInterpreter.CHIP8) {
+						try {
+							FileOutputStream fos = new FileOutputStream(file);
+							Scanner s = new Scanner(content);
+							while (s.hasNextLine()) {
+								
+								String line = s.nextLine();
+								System.out.println(line);
+								int val = Integer.parseInt(line, 0x10);
+								System.out.println(val);
+								byte[] b = new byte[4];
+								b[0] = (byte) ((val & 0xF000) >> 12);
+								b[1] = (byte) ((val & 0x0F00) >> 8);
+								b[2] = (byte) ((val & 0x00F0) >> 4);
+								b[3] = (byte) ((val & 0x000F));
+								fos.write(b);
+							}
+						} catch (FileNotFoundException e1) {
+							e1.printStackTrace();
+						} catch (IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+
+					} else {
+
+						PrintWriter ps;
+						try {
+							ps = new PrintWriter(file);
+							ps.print(content);
+							ps.close();
+						} catch (FileNotFoundException e1) {
+							e1.printStackTrace();
+						}
+
+					}
+
+				} else {
+					System.out.println("Open command cancelled by user.");
+				}
+
+			}
+		});
+
+		JMenuItem importCode = new JMenuItem("Import Code");
+		importCode.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				int returnVal = fc.showOpenDialog(frame);
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					File file = fc.getSelectedFile();
+					System.out.println(file.getAbsolutePath());
+					System.out.println("Opening: " + file.getName());
+					System.out.println("I will notify the observer");
+
+					setChanged();
+					if (combo.getSelectedItem() == SupportedInterpreter.CHIP8)
+						notifyObservers(new NotifierObject(file, true));
+					else
+						notifyObservers(new NotifierObject(file, true));
+
+				} else {
+					System.out.println("Open command cancelled by user.");
+				}
 			}
 		});
 
 		imp.add(importCode);
-		
+		exp.add(exportCode);
 		file.addSeparator(); // add line
 		file.add(imp);
 		file.addSeparator();
+		file.add(exp);
+		file.addSeparator();
 
 		menubar.add(file);
-		
+
 		frame.setJMenuBar(menubar);
-	
-		Container pane =  frame.getContentPane();
-		pane.setLayout(new GridLayout(0, 2 , 3, 3));
+
+		Container pane = frame.getContentPane();
+		pane.setLayout(new GridLayout(0, 2, 3, 3));
 		pane.add(interpreterLabel);
 		pane.add(combo);
 		pane.add(writeLabel);
@@ -144,23 +211,21 @@ public class Gui extends Observable {
 		JScrollPane errorPane = new JScrollPane(errorArea);
 		pane.add(errorPane);
 		pane.add(result);
-		
+
 		frame.setTitle(windowTitle);
 		frame.setLocationRelativeTo(null);
 		frame.pack();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
-	
-	
-	public void putText(String s){
-		
-			contentArea.setText(s);
-		
+
+	public void putText(String s) {
+
+		contentArea.setText(s);
+
 	}
-	
-	public void setVisible(boolean flag){
+
+	public void setVisible(boolean flag) {
 		frame.setVisible(flag);
 	}
 
-	
 }

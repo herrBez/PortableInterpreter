@@ -5,7 +5,6 @@ import interpreterImpl.chip8.Chip8;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
 
@@ -14,7 +13,7 @@ import javax.swing.JPanel;
 public class Chip8Panel extends JPanel{
 	
 	private static final long serialVersionUID = -1784075913477094190L;
-	public final byte SQUARE_SIZE = 10;
+	public static final byte SQUARE_SIZE = 15;
 	
 	byte [] screen;
 	private Color background;
@@ -29,6 +28,10 @@ public class Chip8Panel extends JPanel{
 
 	public Chip8Panel(Color background, Color foreground){
 		screen = new byte[Chip8.WIDTH*Chip8.HEIGHT];
+		for(int i = 0; i < screen.length; i++){
+			if(i >= screen.length/2)
+				screen[i] = 1;
+		}
 		this.background = background;
 		this.foreground = foreground;
 		rec = new Rectangle2D.Double(0, 0, Chip8.WIDTH*SQUARE_SIZE, Chip8.HEIGHT*SQUARE_SIZE);
@@ -61,10 +64,10 @@ public class Chip8Panel extends JPanel{
 
         for(int i = 0; i < screen.length; i++){
         	if(screen[i] == 1){
-        		 int row = i / Chip8.WIDTH;
-        		 int col = i % Chip8.WIDTH;
-        		 System.out.println(row + ", " + col);
-        		 g2d.fill(rec.createIntersection(new Rectangle2D.Double(Chip8.WIDTH*SQUARE_SIZE, Chip8.HEIGHT*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE)));
+        		 int row = ((int)(i / Chip8.WIDTH))*SQUARE_SIZE;
+        		 int col = (i % Chip8.WIDTH)*SQUARE_SIZE;
+        		 g2d.fill(rec.createIntersection(new Rectangle2D.Double(col, 
+        				 row, SQUARE_SIZE, SQUARE_SIZE)));
         	}
         }
               
@@ -80,8 +83,8 @@ public class Chip8Panel extends JPanel{
 	
 	
 	public void myRepaint(){
-		//this.paintImmediately(0, 0, Chip8.WIDTH*SQUARE_SIZE, Chip8.HEIGHT*SQUARE_SIZE);
-		this.paintImmediately((Rectangle) rec);
+		this.paintImmediately(0, 0, Chip8.WIDTH*SQUARE_SIZE, Chip8.HEIGHT*SQUARE_SIZE);
+		//this.paintImmediately(rec.getBounds);
 	}
 	
 }

@@ -6,7 +6,7 @@ import java.io.File;
 import java.text.ParseException;
 import java.util.Stack;
 
-import staticutilities.ReadFile;
+import staticutilities.StaticUtility;
 /**
  *
  * @author mirko
@@ -31,7 +31,7 @@ public class BrainFuck implements InterpreterInterface{
 	
 	@Override
 	public boolean interpret(File f, String inputString)   {
-		String s = ReadFile.readFile(f, false);
+		String s = StaticUtility.readFile(f, false);
 		return interpret(s, inputString);
 	}
 	

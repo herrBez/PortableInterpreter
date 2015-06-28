@@ -2,13 +2,21 @@ package interpreterImpl.chip8;
 
 import gui.chip8.Chip8Gui;
 
+import java.awt.Toolkit;
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Observable;
 import java.util.Scanner;
 import java.util.Stack;
 
-public class Chip8 extends Observable{
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.swing.SwingUtilities;
+
+public class Chip8 {
 	public static final int WIDTH = 64;
 	public static final int HEIGHT = 32;
 	private short[] memory; // byte is signed ==> impossible to represent 255 ..
@@ -19,18 +27,14 @@ public class Chip8 extends Observable{
 	private short delay_timer;
 	private short sound_timer;
 	private Stack<Integer> stack;
-	private short[] key = { 
-			49, 50, 51, 52, // 1,2,3,4
-			81, 87, 69, 82, // q,w,e,r
-			65, 83, 68, 70, // a,s,d,f
-			89, 88, 67, 86	// y,x,c,v
-	};
+	
 	private boolean drawFlag;
 	private int opcode;
 	private int fontset_start;
 	private int last_index;
 	private Chip8Gui gui;
-	private short[] chip8_fontset = { 0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+	private short[] chip8_fontset = { 
+			0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 			0x20, 0x60, 0x20, 0x20, 0x70, // 1
 			0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
 			0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
@@ -47,12 +51,14 @@ public class Chip8 extends Observable{
 			0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
 			0xF0, 0x80, 0xF0, 0x80, 0x80 // F
 	};
-
+	
+	public byte[] keyState;
 	public Chip8() {
 		initialize();
 	}
 
 	private void initialize() {
+		keyState = new byte[0x10];
 		memory = new short[0x1000];
 		pc = 0x200; // The first 512 Bytes are occupied by the interprter
 		V = new short[0x10]; // The registers
@@ -63,10 +69,22 @@ public class Chip8 extends Observable{
 		I = 0;
 		opcode = 0;
 		fontset_start = 0x050;
-		for (int i = 0; i < chip8_fontset.length; i++)
+		for (int i = 0; i < chip8_fontset.length; i++){
 			memory[fontset_start + i] = chip8_fontset[i];
-		gui = new Chip8Gui(this);
-		gui.setVisible(true);
+			System.out.printf("%X ", fontset_start+i);
+		}
+		gui = new Chip8Gui();
+
+		
+		SwingUtilities.invokeLater(new Runnable() {
+				
+				@Override
+				public void run() {
+					gui.setVisible(true);
+
+				}
+		});
+		
 		
 
 	}
@@ -77,11 +95,9 @@ public class Chip8 extends Observable{
 		short oldPixel;
 		for (int i = 0; i < height; i++) {
 			for (int j = 0; j < 8; j++) {
-				actualY = (short) ((Y + 1) % HEIGHT);
-				actualX = (short) ((X + 1) % WIDTH);
+				actualY = (short) ((Y + i) % HEIGHT);
+				actualX = (short) ((X + j) % WIDTH);
 				actualPixel = sprite[i][j];
-				System.out.println("YX" + actualY + ":: " + actualX);
-				System.out.println(screen.length + "::: " + (actualY*WIDTH + actualX));
 				oldPixel = screen[actualY * WIDTH + actualX];
 				screen[actualY * WIDTH + actualX] ^= actualPixel;
 				// A PIXEL WAS ERASED
@@ -93,18 +109,30 @@ public class Chip8 extends Observable{
 			}
 		}
 	}
-
+	
+	private short getX(){
+		return (short) ((opcode & 0x0F00) >> 8);
+	}
+	private short getY(){
+		return (short) ((opcode & 0x00F0) >> 4);
+	}
+	private short getNN(){
+		return (short) (opcode & 0x00FF);
+	}
+	
 	public void executeOpcode() throws Exception {
 		switch (opcode & 0xF000) {
-		case 0x000:
-			switch (opcode & 0x000F) {
-			case 0x0000: // 0x00E0: Clears the screen
+		case 0x0000:
+			switch (opcode & 0x00FF) {
+			case 0x00E0: // 0x00E0: Clears the screen
 				Arrays.fill(screen, (byte)0); 
 				break;
 
 			case 0x00EE: // 0x00EE: Returns from subroutine
 				pc = stack.pop();
 				break;
+			default: System.err.printf("Opcode %4X not known", opcode);
+				System.exit(0);
 			}
 			break;
 		// 1NNN: jump to address NNN
@@ -120,46 +148,49 @@ public class Chip8 extends Observable{
 			break;
 		// 3xNN: Skip the next instruction if V[x] == NN
 		case 0x3000:
-			int x = opcode & 0x0F00 >> 8;
-			short NN = (short) (opcode & 0x00FF);
+			short x = getX();
+			short NN = getNN();
 			if (V[x] == NN) {
 				pc += 2;
 			}
 			break;
 		// 4XNN Skips the next instruction if VX doesn't equal NN.
 		case 0x4000:
-			x = (opcode & 0x0F00) >> 8;
-			NN = (short) (opcode & 0x00FF);
+			x = getX();
+			NN = getNN();
 			if (V[x] != NN) {
 				pc += 2;
 			}
 			break;
 		// 5XY0 Skips the next instruction if VX equals VY.
 		case 0x5000:
-			x = (opcode & 0x0F00) >> 8;
-			int y = (opcode & 0x00F0) >> 4; // >> 4 shift 4 binary position :=
-											// shift 1 nibble
-			if ((opcode & 0x000F) != 0)
-				throw new Exception();
+			x = getX();
+			short y = getY();
+			if ((opcode & 0x000F) != 0){
+				System.err.printf("opcode %4X not known", opcode);
+				System.exit(0);
+			}
 			if (V[x] == V[y])
 				pc += 2;
 
 			break;
 		// 6XNN Sets VX to NN.
 		case 0x6000:
-			x = (opcode & 0x0F00) >> 8;
-			NN = (short) (opcode & 0x00FF);
+			x = getX();
+			NN = getNN();
 			V[x] = NN;
 
 			break;
 		case 0x7000:
-			x = (opcode & 0x0F00) >> 8;
-			NN = (short) (opcode & 0x00FF);
+			x = getX();
+			NN = getNN();
 			V[x] += NN;
 			break;
+			
+			
 		case 0x8000:
-			x = (opcode & 0x0F00) >> 8;
-			y = (opcode & 0x00F0) >> 4;
+			x = getX();
+			y = getY();
 			switch (opcode & 0x000F) {
 			// Sets VX to the value of VY.
 			case 0x0:
@@ -187,13 +218,8 @@ public class Chip8 extends Observable{
 			// VY is subtracted from VX. VF is set to 0 when there's a borrow,
 			// and 1 when there isn't.
 			case 0x5:
-				int sub = V[x] - V[y];
-				if (sub < 0) {
-					V[0xF] = 0;
-					sub = 0;
-				} else
-					V[0xF] = 1;
-				V[x] = (short) sub;
+				V[0xF] = (short) (V[x] > V[y]?1:0);
+				V[x] = (short)(V[y] >= V[x]? 0 : (V[x]-V[y]));
 				break;
 			// Shifts VX right by one. VF is set to the value of the least
 			// significant bit of VX before the shift.[2]
@@ -204,30 +230,25 @@ public class Chip8 extends Observable{
 			// Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and
 			// 1 when there isn't.
 			case 0x7:
-				sub = V[y] - V[x];
-				if (sub < 0) {
-					V[0xF] = 0;
-					sub = 0;
-				} else
-					V[0xF] = 1;
-				V[x] = (short) sub;
+				V[0xF] = (short) (V[y] > V[x]?1:0);
+				V[x] = (short) (V[x]>V[y]?1:(V[y]-V[x]));
 				break;
 			// Shifts VX left by one. VF is set to the value of the most
 			// significant bit of VX before the shift.[2]
 			case 0xE:
-				V[0xF] = (short) (V[x] & 0x8000); // 0x8 == 1000 -> most
-													// significant bit
+				V[0xF] = (short) ((V[x] & 0x8000) >> 15); // 0x8 == 1000 -> most significant bit
 				V[x] = (short) (V[x] << 1);
 				break;
 			default:
-				throw new Exception("Opcode " + opcode + "not known");
+				System.err.printf("opcode %04X not known", opcode);
+				System.exit(0);
 			}
 
 			break;
 		// Skips the next instruction if VX doesn't equal VY.
 		case 0x9000:
-			x = (opcode & 0x0F00) >> 8;
-			y = (opcode & 0x00F0) >> 4;
+			x = getX();
+			y = getNN();
 			if (V[x] != V[y])
 				pc += 2;
 
@@ -241,23 +262,23 @@ public class Chip8 extends Observable{
 			pc = adress + V[0];
 			break;
 		case 0xC000:
-			x = (opcode & 0x0F00) >> 8;
-			NN = (short) (opcode & 0x00FF);
-			V[x] = (short) (((int) (Math.random() * 0x100)) | NN);
+			x = getX();
+			NN = getNN();
+			short rand = (short) (Math.random()*0x100);
+			V[x] = (short) (rand & NN);
 
 			break;
 		// 0xDxyN -> V[x] V[y] N = height of the sprite
 		case 0xD000:
-			x = (opcode & 0x0F00) >> 8;
-			y = (opcode & 0x00F0) >> 4;
+			x = getX();
+			y = getY();
 			short height = (short) (opcode & 0x000F);
 			short[] buffer = new short[height];
 			byte[][] spriteMatrix = new byte[height][8];
 			int tmpI = I;
 			for (int i = 0; i < height; i++) {
 				buffer[i] = memory[tmpI + i]; // read 8 pixel
-				short fNibble = (short) (buffer[i] & 0xF0 >> 4); // firstNibble
-				
+				short fNibble = (short) ((buffer[i] & 0xF0) >> 4); // firstNibble
 				spriteMatrix[i][0] = (byte) ((fNibble & 0x8) >> 3); // 8 = 1000
 																	// only the
 																	// first bit
@@ -277,23 +298,29 @@ public class Chip8 extends Observable{
 				spriteMatrix[i][7] = (byte) ((sNibble & 0x1));
 				
 			}
-			System.out.println("REG X, Y" + V[x] + " " + V[y]);
+			System.out.printf("V[%X] = %03X\tV[%X] = %03X\n", x, V[x],y,  V[y]);
 			copyInScreen(spriteMatrix, height, V[x], V[y]);
 			drawFlag = true;
 			break;
 		case 0xE000:
+			System.out.printf(">>>%04X<<<\n", opcode);
+			x = getX();
 			switch (opcode & 0x00FF) {
+			
 			// EX9E Skips the next instruction if the key stored in VX is
 			// pressed.
 			case 0x009E:
-				if (key[V[(opcode & 0x0F00) >> 8]] != 0)
+				System.out.printf("Skip if V[%X] = %04X  %c is pressed\n", x,  V[x], (char)gui.getExpectedKey(V[x]));
+				if (keyState[V[x]] == 1)
 					pc += 2;
 
 				break;
 			// EXA1 Skips the next instruction if the key stored in VX isn't
 			// pressed.
 			case 0x00A1:
-				if (key[V[(opcode & 0x0F00) >> 8]] == 0)
+				System.out.printf("Skip if V[%X] = %04X %c is pressed \n", x, V[x], (char) gui.getExpectedKey(V[x]));
+
+				if (keyState[V[x]]== 0)
 					pc += 2;
 
 				break;
@@ -302,17 +329,20 @@ public class Chip8 extends Observable{
 			}
 			break;
 		case 0xF000:
-			x = opcode & 0x0F00 >> 8;
+			x = getX();
 			switch (opcode & 0x00FF) {
 			// Sets VX to the value of the delay timer.
 			case 0x0007:
 				V[x] = delay_timer;
 				break;
 			// A key press is awaited, and then stored in VX.
+				//TODO
 			case 0x000A:
-				while (System.in.available() <= 0)
-					;
-				V[x] = (short) gui.getKeyPressed();
+				Object o = new Object();
+				System.out.println("WAIT A KEY PRESS!!!");
+				gui.waitKeyPress(o);
+				o.wait();
+				V[x] = (short) gui.getLastKeyPressed();
 				break;
 			// FX15 Sets the delay timer to VX.
 			case 0x0015:
@@ -329,8 +359,8 @@ public class Chip8 extends Observable{
 			// Sets I to the location of the sprite for the character in VX.
 			// Characters 0-F (in hexadecimal) are represented by a 4x5 font.
 			case 0x0029:
-				x = (opcode & 0x0F00) >> 8;
-				I = fontset_start + V[x] * 5;
+				x = getX();
+				I = fontset_start + (V[x] * 5);
 				break;
 			/*
 			 * Stores the Binary-coded decimal representation of VX, with the
@@ -342,8 +372,8 @@ public class Chip8 extends Observable{
 			 */
 			case 0x0033:
 				memory[I + 2] = (short) (V[x] % 10);
-				memory[I + 1] = (short) ((V[x] % 100) / 10);
-				memory[I] = (short) ((V[x] % 1000) / 100);
+				memory[I + 1] = (short) ((V[x] / 10) % 10);
+				memory[I] = (short) ((V[x] / 100) % 10);
 
 				break;
 			// Stores V0 to VX in memory starting at address I.
@@ -365,12 +395,10 @@ public class Chip8 extends Observable{
 		default:
 			System.err.println("Unknown opcode" + opcode);
 		}
-		for(int i = 0; i < V.length; i++){
-			if(V[i] > 0x100)
-				V[i] %= 0x100;
-		}
+		
 	}
-
+	
+	
 	public void emulateCycle() throws Exception {
 		opcode = memory[pc++] << 8 | memory[pc++];
 		executeOpcode();
@@ -379,13 +407,21 @@ public class Chip8 extends Observable{
 		if (delay_timer > 0)
 			delay_timer--;
 		if (sound_timer > 0) {
-			if (sound_timer == 1)
-				System.out.println("BEEP");
+			if (sound_timer == 1){
+				System.out.println("beep");
+				beep();
+			}
 			--sound_timer;
 		}
+		
+		
 
 	}
-
+	
+	public void storeKeyState(){
+		keyState = gui.getKeyState();
+	}
+	
 	public void loadGameIntoMemory(String source) {
 		Scanner s = new Scanner(source);
 		String line;
@@ -400,12 +436,16 @@ public class Chip8 extends Observable{
 				l.add(second);
 			}
 		}
+		System.out.println();
 		for (int i = 0; i < l.size(); i++) {
 			memory[0x200 + i] = l.get(i);
-			System.out
-					.printf("memory[%X] = %X\n", 0x200 + i, memory[0x200 + i]);
+			
 		}
 		last_index = 0x200 + l.size();
+		for(int i = fontset_start; i < last_index; i++){
+			System.out.printf("memory[%03X] = %02X\n", i, memory[i]);
+		}
+		
 		s.close();
 
 	}
@@ -414,7 +454,6 @@ public class Chip8 extends Observable{
 	}
 
 	public boolean isFinished() {
-		System.out.printf("%X==%X\n", pc, last_index);
 		return pc == last_index;
 	}
 
@@ -435,6 +474,26 @@ public class Chip8 extends Observable{
 	public boolean isToDraw(){
 		return drawFlag;
 	}
+	public void printScreen(){
+		for(int i = 0; i < screen.length; i++){
+			System.out.printf("%d ", screen[i]);
+			if(i != 0 && i % WIDTH == 0)
+				System.out.println();
+		}
+	}
+	public void beep(){
 	
+			try{
+			    AudioInputStream audioInputStream =
+			        AudioSystem.getAudioInputStream(
+			        		new File("/tmp/beep.wav"));
+			    Clip clip = AudioSystem.getClip();
+			    clip.open(audioInputStream);
+			    clip.start();
+			}
+			catch(Exception ex)
+			{
+			}
+	}
 
 }

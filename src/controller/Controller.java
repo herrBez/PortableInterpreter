@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.util.Observable;
 import java.util.Observer;
 
+import staticutilities.StaticUtility;
+
 public class Controller implements Observer {
 	Gui g;
 
@@ -19,7 +21,10 @@ public class Controller implements Observer {
 		g.setVisible(true);
 		g.addObserver(this);
 	}
+	
 
+	
+	
 	public String getBinaryFileContent(File f) {
 		String everything = null;
 		FileInputStream fi;
@@ -29,17 +34,9 @@ public class Controller implements Observer {
 			StringBuilder sb = new StringBuilder();
 			byte[] b = new byte[2];
 			while (fi.read(b) > 0) {
-				int b0s;
-				int b1s;
-				if (b[0] < 0)// It means most significant bit is 1
-					b0s = (short) (b[0] & 0x7F + 0x80);
-				else
-					b0s = b[0];
-				if (b[1] < 0)
-					b1s = (short) (b[1] & 0x7F + 0x80);
-				else
-					b1s = b[1];
-
+				short b0s = StaticUtility.toUnsignedByte(b[0]);
+				short b1s = StaticUtility.toUnsignedByte(b[1]);
+					
 				int val = (b0s << 8) + b1s;
 				StringBuilder myHexString = new StringBuilder(Integer.toHexString(val));
 				while(myHexString.toString().length() < 4)

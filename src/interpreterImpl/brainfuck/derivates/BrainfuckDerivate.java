@@ -3,7 +3,7 @@ package interpreterImpl.brainfuck.derivates;
 import java.io.File;
 import java.text.ParseException;
 
-import staticutilities.ReadFile;
+import staticutilities.StaticUtility;
 import interfaces.InterpreterInterface;
 import interpreterImpl.brainfuck.BrainFuck;
 
@@ -16,7 +16,7 @@ public abstract class BrainfuckDerivate implements InterpreterInterface{
 
 	@Override
 	public boolean interpret(File f, String inputString) {
-		String code = ReadFile.readFile(f, false);
+		String code = StaticUtility.readFile(f, false);
 		return interpret(code, inputString);
 	}
 	
