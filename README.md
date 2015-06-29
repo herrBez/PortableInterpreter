@@ -6,5 +6,9 @@ i.e. by using Java.
 At the moment of writing this README
 the following languages are supported:
 <ul>
-    <li>Brainfuck</li>
+    <li>Brainfuck and its derivates:</li>
+        <ul>
+            <li>Ook!</li>
+            <li>Alphuck</li>
+        </ul>
 </ul>
