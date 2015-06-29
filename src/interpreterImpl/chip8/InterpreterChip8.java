@@ -1,6 +1,7 @@
 package interpreterImpl.chip8;
 
 import interfaces.InterpreterInterface;
+import interpreterImpl.chip8.implementation.Chip8;
 
 import java.io.File;
 import java.text.ParseException;
@@ -17,14 +18,7 @@ public class InterpreterChip8 implements InterpreterInterface {
 		return false;
 	}
 
-	private static void mySleep(int mills) {
-		try {
-			Thread.sleep(mills);
-		} catch (InterruptedException e) {
-
-			e.printStackTrace();
-		}
-	}
+	
 
 	@Override
 	public boolean interpret(String s, String inputString) {
@@ -36,6 +30,7 @@ public class InterpreterChip8 implements InterpreterInterface {
 			@Override
 			public void run() {
 				while (!c.isFinished()) {
+					long start = System.nanoTime();
 					try {
 						c.emulateCycle();
 					} catch (Exception e) {
@@ -46,11 +41,25 @@ public class InterpreterChip8 implements InterpreterInterface {
 						c.setToDraw(false);
 					}
 					c.storeKeyState();
-					try {
-						Thread.sleep(16, 5);
+					
+						
+				
+					try{	
+						//The cycle last 1s/60 (60 Hz) = 16666666 nano secondi
+						
+						long toWait = 16666666 -  (System.nanoTime() - start);
+						if(toWait > 0){
+
+							long millis = (long)(toWait/1000000);
+							//long nano = (long)toWait%1000000;
+							
+							Thread.sleep(millis);//, (int) nano);
+						}
+						
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
+					
 				}
 
 			}

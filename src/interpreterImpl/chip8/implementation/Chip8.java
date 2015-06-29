@@ -1,13 +1,10 @@
-package interpreterImpl.chip8;
+package interpreterImpl.chip8.implementation;
 
-import gui.chip8.Chip8Gui;
+import interpreterImpl.chip8.gui.Chip8Gui;
 
-import java.awt.Toolkit;
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Observable;
 import java.util.Scanner;
 import java.util.Stack;
 
@@ -33,6 +30,7 @@ public class Chip8 {
 	private int fontset_start;
 	private int last_index;
 	private Chip8Gui gui;
+	public static final short MAX_STACK_SIZE = 0x10;
 	private short[] chip8_fontset = { 
 			0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 			0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -62,16 +60,15 @@ public class Chip8 {
 		memory = new short[0x1000];
 		pc = 0x200; // The first 512 Bytes are occupied by the interprter
 		V = new short[0x10]; // The registers
+		Arrays.fill(V, (short)0);
 		screen = new byte[64 * 32];
 		stack = new Stack<Integer>();
-
 		drawFlag = true;
 		I = 0;
 		opcode = 0;
 		fontset_start = 0x050;
 		for (int i = 0; i < chip8_fontset.length; i++){
 			memory[fontset_start + i] = chip8_fontset[i];
-			System.out.printf("%X ", fontset_start+i);
 		}
 		gui = new Chip8Gui();
 
@@ -92,23 +89,26 @@ public class Chip8 {
 	private void copyInScreen(byte[][] sprite, short height, short X, short Y) {
 		V[0xF] = 0;
 		short actualPixel, actualY, actualX;
-		short oldPixel;
+		short oldPixel, newPixel;
 		for (int i = 0; i < height; i++) {
 			for (int j = 0; j < 8; j++) {
 				actualY = (short) ((Y + i) % HEIGHT);
 				actualX = (short) ((X + j) % WIDTH);
 				actualPixel = sprite[i][j];
 				oldPixel = screen[actualY * WIDTH + actualX];
+				
 				screen[actualY * WIDTH + actualX] ^= actualPixel;
+				newPixel = screen[actualY * WIDTH + actualX];
 				// A PIXEL WAS ERASED
-				if (oldPixel == 1 && screen[actualY * WIDTH + actualX] == 0) {
-
+				if (oldPixel == 1 && newPixel == 0) {
 					V[0xF] = 1;
 				}
 
 			}
 		}
 	}
+	
+	
 	
 	private short getX(){
 		return (short) ((opcode & 0x0F00) >> 8);
@@ -119,8 +119,13 @@ public class Chip8 {
 	private short getNN(){
 		return (short) (opcode & 0x00FF);
 	}
+	private int getNNN(){
+		return (opcode & 0x0FFF);
+	}
 	
 	public void executeOpcode() throws Exception {
+		short x, y, NN;
+	
 		switch (opcode & 0xF000) {
 		case 0x0000:
 			switch (opcode & 0x00FF) {
@@ -131,29 +136,42 @@ public class Chip8 {
 			case 0x00EE: // 0x00EE: Returns from subroutine
 				pc = stack.pop();
 				break;
-			default: System.err.printf("Opcode %4X not known", opcode);
-				System.exit(0);
+			//Ignore the other 0x0NNN Combinations: Calls RCA 1802 program at address NNN.
 			}
 			break;
+			
+			
+			
 		// 1NNN: jump to address NNN
 		case 0x1000:
-			pc = opcode & 0x0FFF;
+			pc = getNNN();
 			break;
 		// 2NNN: Call subroutine at adress NNN
+			
+			
+			
+			
 		case 0x2000:
 			stack.push(pc);
-			if (stack.size() > 16)
+			if (stack.size() > MAX_STACK_SIZE)
 				throw new StackOverflowError();
-			pc = opcode & 0x0FFF;
+			pc = getNNN();
 			break;
+			
+			
+			
+			
 		// 3xNN: Skip the next instruction if V[x] == NN
 		case 0x3000:
-			short x = getX();
-			short NN = getNN();
+			x = getX();
+			NN = getNN();
 			if (V[x] == NN) {
 				pc += 2;
 			}
 			break;
+			
+			
+			
 		// 4XNN Skips the next instruction if VX doesn't equal NN.
 		case 0x4000:
 			x = getX();
@@ -162,10 +180,14 @@ public class Chip8 {
 				pc += 2;
 			}
 			break;
+			
+			
+			
+			
 		// 5XY0 Skips the next instruction if VX equals VY.
 		case 0x5000:
 			x = getX();
-			short y = getY();
+			y = getY();
 			if ((opcode & 0x000F) != 0){
 				System.err.printf("opcode %4X not known", opcode);
 				System.exit(0);
@@ -179,12 +201,16 @@ public class Chip8 {
 			x = getX();
 			NN = getNN();
 			V[x] = NN;
-
 			break;
+			
+			
+			
+		//Adds NN to VX.
 		case 0x7000:
 			x = getX();
 			NN = getNN();
-			V[x] += NN;
+			V[x] = (short)((V[x] + NN) & 0xFF);
+			
 			break;
 			
 			
@@ -198,46 +224,46 @@ public class Chip8 {
 				break;
 			// Sets VX to VX or VY.
 			case 0x1:
-				V[x] = (short) (V[x] | V[y]);
+				V[x] = (short) ((V[x] | V[y]) & 0xFF);
 				break;
 			// Sets VX to VX and VY.
 			case 0x2:
-				V[x] = (short) (V[x] & V[y]);
+				V[x] = (short) ((V[x] & V[y]) & 0xFF);
 				break;
 			// Sets VX to VX xor VY.
 			case 0x3:
-				V[x] = (short) (V[x] ^ V[y]);
+				V[x] = (short) ((V[x] ^ V[y]) & 0xFF);
 				break;
 			// Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when
 			// there isn't./
 			case 0x4:
 				int sum = V[x] + V[y];
-				V[x] = (short) (sum % 0x100);
+				V[x] = (short) (sum & 0xFF); //max 255 0xFF
 				V[0xF] = (short) (sum >= 0x100 ? 1 : 0);
 				break;
 			// VY is subtracted from VX. VF is set to 0 when there's a borrow,
-			// and 1 when there isn't.
+			// and 1 when there isn't. Vx = Vx - Vy
 			case 0x5:
-				V[0xF] = (short) (V[x] > V[y]?1:0);
-				V[x] = (short)(V[y] >= V[x]? 0 : (V[x]-V[y]));
+				V[0xF] = (short) (V[x] < V[y]?0:1);
+				V[x] = (short) ((V[x] - V[y]) & 0xFF);
 				break;
 			// Shifts VX right by one. VF is set to the value of the least
 			// significant bit of VX before the shift.[2]
 			case 0x6:
-				V[0xF] = (short) (V[x] % 2);
-				V[x] = (short) (V[x] >> 1);
+				V[0xF] = (short) (V[x] & 0x01);
+				V[x] = (short) ((V[x] >> 1) & 0xFF);
 				break;
 			// Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and
-			// 1 when there isn't.
+			// 1 when there isn't. Vx = Vy-Vx
 			case 0x7:
-				V[0xF] = (short) (V[y] > V[x]?1:0);
-				V[x] = (short) (V[x]>V[y]?1:(V[y]-V[x]));
+				V[0xF] = (short) (V[x] > V[y]?0:1);
+				V[x] = (short) ((V[y]-V[x]) & 0xFF);
 				break;
 			// Shifts VX left by one. VF is set to the value of the most
 			// significant bit of VX before the shift.[2]
 			case 0xE:
-				V[0xF] = (short) ((V[x] & 0x8000) >> 15); // 0x8 == 1000 -> most significant bit
-				V[x] = (short) (V[x] << 1);
+				V[0xF] = (short) ((V[x] & 0x80) >> 7); // 0x8 == 1000 -> most significant bit
+				V[x] = (short) ((V[x] << 1) & 0xFF);
 				break;
 			default:
 				System.err.printf("opcode %04X not known", opcode);
@@ -254,12 +280,11 @@ public class Chip8 {
 
 			// Sets I to the address NNN.
 		case 0xA000:
-			I = opcode & 0x0FFF;
+			I = getNNN();
 			break;
 		// Jumps to the address NNN plus V0.
 		case 0xB000:
-			int adress = opcode & 0x0FFF;
-			pc = adress + V[0];
+			pc = getNNN() + V[0];
 			break;
 		case 0xC000:
 			x = getX();
@@ -272,6 +297,10 @@ public class Chip8 {
 		case 0xD000:
 			x = getX();
 			y = getY();
+			if(V[x] < 0 || V[y] < 0) {
+				printSituation();
+				System.exit(0);
+			}
 			short height = (short) (opcode & 0x000F);
 			short[] buffer = new short[height];
 			byte[][] spriteMatrix = new byte[height][8];
@@ -298,7 +327,6 @@ public class Chip8 {
 				spriteMatrix[i][7] = (byte) ((sNibble & 0x1));
 				
 			}
-			System.out.printf("V[%X] = %03X\tV[%X] = %03X\n", x, V[x],y,  V[y]);
 			copyInScreen(spriteMatrix, height, V[x], V[y]);
 			drawFlag = true;
 			break;
@@ -336,7 +364,6 @@ public class Chip8 {
 				V[x] = delay_timer;
 				break;
 			// A key press is awaited, and then stored in VX.
-				//TODO
 			case 0x000A:
 				Object o = new Object();
 				System.out.println("WAIT A KEY PRESS!!!");
@@ -361,6 +388,8 @@ public class Chip8 {
 			case 0x0029:
 				x = getX();
 				I = fontset_start + (V[x] * 5);
+				System.out.printf("V[%X] = 0x%X ==> I = 0x%X ==> VAL = 0x%X\n", x, V[x], I, memory[I]);
+				
 				break;
 			/*
 			 * Stores the Binary-coded decimal representation of VX, with the
@@ -400,7 +429,9 @@ public class Chip8 {
 	
 	
 	public void emulateCycle() throws Exception {
-		opcode = memory[pc++] << 8 | memory[pc++];
+		opcode = memory[pc] << 8 | memory[pc+1];
+		System.out.printf("PC: %03X: %04X\n",pc, opcode);
+		pc += 2;
 		executeOpcode();
 
 		// Update timers
@@ -442,8 +473,8 @@ public class Chip8 {
 			
 		}
 		last_index = 0x200 + l.size();
-		for(int i = fontset_start; i < last_index; i++){
-			System.out.printf("memory[%03X] = %02X\n", i, memory[i]);
+		for(int i = 0x200; i < last_index; i+= 2){
+			System.out.printf("mem[%03X-%03X] = %02X%02X\n", i, i+1, memory[i], memory[i+1]);
 		}
 		
 		s.close();
@@ -454,13 +485,13 @@ public class Chip8 {
 	}
 
 	public boolean isFinished() {
-		return pc == last_index;
+		return pc == last_index || gui.isClosed();
 	}
 
 	private void printSituation() {
-		System.out.printf("OP: %X\n", opcode);
+		System.out.printf("POS: %X: OP: %X\n",pc-2, opcode);
 		for (int i = 0; i < V.length; i++) {
-			System.out.printf("V[%X] = %X\n", i, V[i]);
+			System.out.printf("[%X]=%d", i, V[i]);
 		}
 	}
 
@@ -484,15 +515,18 @@ public class Chip8 {
 	public void beep(){
 	
 			try{
+				File f = new File("./Sound/beep.wav");
+			    System.out.println(f.getAbsolutePath());
+
 			    AudioInputStream audioInputStream =
-			        AudioSystem.getAudioInputStream(
-			        		new File("/tmp/beep.wav"));
+			        AudioSystem.getAudioInputStream(f);
 			    Clip clip = AudioSystem.getClip();
 			    clip.open(audioInputStream);
 			    clip.start();
 			}
 			catch(Exception ex)
 			{
+				ex.printStackTrace(	);
 			}
 	}
 

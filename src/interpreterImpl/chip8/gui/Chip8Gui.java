@@ -1,15 +1,20 @@
-package gui.chip8;
+package interpreterImpl.chip8.gui;
 
-import interpreterImpl.chip8.Chip8;
+import interpreterImpl.chip8.implementation.Chip8;
 
+import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Observable;
-import java.util.Observer;
 
 import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
 public class Chip8Gui  {
@@ -18,6 +23,8 @@ public class Chip8Gui  {
 	private JFrame frame;
 	private Object lock;
 	private boolean waitKeyPress;
+	private boolean closed;
+	private boolean paused;
 	private final short[] keyArray = { 49, 50, 51, 52, // 1,2,3,4
 			81, 87, 69, 82, // q,w,e,r
 			65, 83, 68, 70, // a,s,d,f
@@ -26,11 +33,13 @@ public class Chip8Gui  {
 	private byte[] keyState;
 
 	public Chip8Gui() {
+		paused = false;
 		keyState = new byte[16];
 		lock = null;
 		frame = new JFrame();
 		waitKeyPress = false;
 		board = new Chip8Panel();
+		closed = false;
 		frame.addKeyListener(new KeyListener() {
 
 			@Override
@@ -85,14 +94,63 @@ public class Chip8Gui  {
 
 				int result = JOptionPane.showConfirmDialog(frame,
 						"Are you sure you want to exit the application?",
-						"Exit Application", JOptionPane.YES_NO_OPTION);
+						"Close Chip8 Emulator", JOptionPane.YES_NO_OPTION);
 
-				if (result == JOptionPane.YES_OPTION)
-					frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+				if (result == JOptionPane.YES_OPTION){
+					frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+					closed = true;
+				}
 			}
 		});
-	}
+		
+		JMenuBar menubar = new JMenuBar();
+		
+		JMenu changeColor = new JMenu("Change color");
+		changeColor.setMnemonic(KeyEvent.VK_M);
+		
+		
+		
+		changeColor.add(new ChangeColor("WHITE/BLACK", Color.WHITE, Color.BLACK, board));
+		changeColor.addSeparator();
+		changeColor.add(new ChangeColor("GREEN/BLACK", Color.GREEN, Color.BLACK, board));
+		changeColor.addSeparator();
+		changeColor.add(new ChangeColor("BLACK/WHITE", Color.BLACK, Color.WHITE, board));
+		changeColor.addSeparator();		
+		changeColor.add(new ChangeColor("BLUE/WHITE", Color.BLUE, Color.WHITE, board));
+		changeColor.addSeparator();
+		changeColor.add(new ChangeColor("BLUE/BLACK", Color.BLUE, Color.BLACK, board));
+		changeColor.addSeparator();		
 
+
+		
+		JMenuItem closeItem = new JMenuItem("CLOSE");
+		JMenuItem pauseItem = new JMenuItem("PAUSE");
+		pauseItem.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				paused = true;
+			}
+		});
+		menubar.add(closeItem);
+		menubar.add(changeColor);
+		menubar.add(pauseItem);
+		
+		frame.setJMenuBar(menubar);
+		
+
+	}
+	
+	
+	public boolean isPaused(){
+		return paused;
+	}
+	
+	public boolean isClosed(){
+		return closed;
+	}
+	
 	public Chip8Gui(Observable o) {
 		this();
 		

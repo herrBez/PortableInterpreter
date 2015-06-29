@@ -1,6 +1,6 @@
-package gui.chip8;
+package interpreterImpl.chip8.gui;
 
-import interpreterImpl.chip8.Chip8;
+import interpreterImpl.chip8.implementation.Chip8;
 
 import java.awt.Color;
 import java.awt.Graphics;
@@ -84,7 +84,6 @@ public class Chip8Panel extends JPanel{
 	
 	public void myRepaint(){
 		this.paintImmediately(0, 0, Chip8.WIDTH*SQUARE_SIZE, Chip8.HEIGHT*SQUARE_SIZE);
-		//this.paintImmediately(rec.getBounds);
 	}
 	
 }

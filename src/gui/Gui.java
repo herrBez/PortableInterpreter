@@ -9,6 +9,8 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,6 +28,7 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
@@ -215,7 +218,20 @@ public class Gui extends Observable {
 		frame.setTitle(windowTitle);
 		frame.setLocationRelativeTo(null);
 		frame.pack();
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				JFrame frame = (JFrame) e.getSource();
+
+				int result = JOptionPane.showConfirmDialog(frame,
+						"Are you sure you want to exit the application?",
+						"Exit Application", JOptionPane.YES_NO_OPTION);
+
+				if (result == JOptionPane.YES_OPTION){
+					frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+				}
+			}
+		});
+	
 	}
 
 	public void putText(String s) {
