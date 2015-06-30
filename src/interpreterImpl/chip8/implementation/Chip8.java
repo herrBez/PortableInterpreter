@@ -274,7 +274,7 @@ public class Chip8 {
 		// Skips the next instruction if VX doesn't equal VY.
 		case 0x9000:
 			x = getX();
-			y = getNN();
+			y = getY();
 			if (V[x] != V[y])
 				pc += 2;
 
