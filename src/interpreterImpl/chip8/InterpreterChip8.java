@@ -25,43 +25,14 @@ public class InterpreterChip8 implements InterpreterInterface {
 		System.out.println("INTERPRETER BITCH");
 		Chip8 c = new Chip8();
 		c.loadGameIntoMemory(s);
+		
+		
+		
 		Runnable r = new Runnable() {
 
 			@Override
 			public void run() {
-				while (!c.isFinished()) {
-					long start = System.nanoTime();
-					try {
-						c.emulateCycle();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-					if (c.isToDraw()) {
-						c.repaint();
-						c.setToDraw(false);
-					}
-					c.storeKeyState();
-					
-						
-				
-					try{	
-						//The cycle last 1s/60 (60 Hz) = 16666666 nano secondi
-						
-						long toWait = 16666666 -  (System.nanoTime() - start);
-						if(toWait > 0){
-
-							long millis = (long)(toWait/1000000);
-							//long nano = (long)toWait%1000000;
-							
-							Thread.sleep(millis);//, (int) nano);
-						}
-						
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-					
-				}
-
+				c.mainLoop();
 			}
 		};
 

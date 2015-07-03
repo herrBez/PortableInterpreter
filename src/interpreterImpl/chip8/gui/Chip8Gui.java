@@ -32,7 +32,7 @@ public class Chip8Gui  {
 	};
 	private byte[] keyState;
 
-	public Chip8Gui() {
+	public Chip8Gui(Chip8 c) {
 		paused = false;
 		keyState = new byte[16];
 		lock = null;
@@ -62,9 +62,7 @@ public class Chip8Gui  {
 				if (i < keyArray.length) {
 					keyState[i] = 0;
 				}
-				if (waitKeyPress)
-					lock.notify();
-
+				
 			}
 
 			@Override
@@ -74,9 +72,18 @@ public class Chip8Gui  {
 				int i = getKeyIndex(key);
 				if (i < keyArray.length) {
 					keyState[i] = 1;
+				} else {
+					System.out.println("WARNING: Key " + key + " Not recognized");
+					key = null;
 				}
-				if (waitKeyPress)
-					lock.notify();
+				if (waitKeyPress && key != null){
+					
+					synchronized(lock){
+						System.out.println("HERE" + key);
+						lock.notifyAll();
+						waitKeyPress = false;
+					}
+				}
 
 			}
 		});
@@ -108,6 +115,17 @@ public class Chip8Gui  {
 		JMenu changeColor = new JMenu("Change color");
 		changeColor.setMnemonic(KeyEvent.VK_M);
 		
+		JMenu changeFrequency = new JMenu("Frequency");
+		int freq = 60;
+		for(int i = 0; i < 15; i++){
+			changeFrequency.add(new ChangeFrequency(freq + "Hz", c, freq));
+			changeFrequency.addSeparator();
+			freq += 60;
+		}
+	
+
+		
+
 		
 		
 		changeColor.add(new ChangeColor("WHITE/BLACK", Color.WHITE, Color.BLACK, board));
@@ -123,19 +141,18 @@ public class Chip8Gui  {
 
 
 		
-		JMenuItem closeItem = new JMenuItem("CLOSE");
 		JMenuItem pauseItem = new JMenuItem("PAUSE");
+	
 		pauseItem.addActionListener(new ActionListener() {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				
-				paused = true;
+				c.setPaused();
 			}
 		});
-		menubar.add(closeItem);
 		menubar.add(changeColor);
 		menubar.add(pauseItem);
+		menubar.add(changeFrequency);
 		
 		frame.setJMenuBar(menubar);
 		
@@ -151,12 +168,7 @@ public class Chip8Gui  {
 		return closed;
 	}
 	
-	public Chip8Gui(Observable o) {
-		this();
-		
-
-	}
-
+	
 	public byte[] getKeyState() {
 		return keyState;
 	}
@@ -183,13 +195,13 @@ public class Chip8Gui  {
 	}
 
 	public void waitKeyPress(Object o) {
-		waitKeyPress = false;
+		waitKeyPress = true;
 		lock = o;
 	}
 
 	
 	public static void main(String[] args) throws InterruptedException {
-		Chip8Gui g = new Chip8Gui();
+		Chip8Gui g = new Chip8Gui(new Chip8());
 		g.setVisible(true);
 		byte[] screen = new byte[64 * 32];
 		for (int k = 0; k < 10; k++) {

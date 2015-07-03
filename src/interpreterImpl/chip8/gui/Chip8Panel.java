@@ -9,6 +9,7 @@ import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
 
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 public class Chip8Panel extends JPanel{
 	
@@ -83,7 +84,7 @@ public class Chip8Panel extends JPanel{
 	
 	
 	public void myRepaint(){
-		this.paintImmediately(0, 0, Chip8.WIDTH*SQUARE_SIZE, Chip8.HEIGHT*SQUARE_SIZE);
+		paintImmediately(0, 0, Chip8.WIDTH*SQUARE_SIZE, Chip8.HEIGHT*SQUARE_SIZE);
 	}
 	
 }

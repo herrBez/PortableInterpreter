@@ -24,12 +24,13 @@ public class Chip8 {
 	private short delay_timer;
 	private short sound_timer;
 	private Stack<Integer> stack;
-	
+	private byte round;
 	private boolean drawFlag;
 	private int opcode;
 	private int fontset_start;
 	private int last_index;
 	private Chip8Gui gui;
+	private boolean paused;
 	public static final short MAX_STACK_SIZE = 0x10;
 	private short[] chip8_fontset = { 
 			0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -51,11 +52,32 @@ public class Chip8 {
 	};
 	
 	public byte[] keyState;
+	private long cycleDurationTime;
+	private short updateTimersAfterCycle;
 	public Chip8() {
 		initialize();
 	}
-
+	
+	private Clip clip;
+	
+	private void loadSound(){
+		File f = new File("./Sound/beep.wav");
+	    System.out.println(f.getAbsolutePath());
+	    try {
+	    AudioInputStream audioInputStream =
+	        AudioSystem.getAudioInputStream(f);
+	    clip = AudioSystem.getClip();
+	    clip.open(audioInputStream);
+	    } catch(Exception e){
+	    	System.err.println("Cannot find beep");;
+	    }
+	}
+	
 	private void initialize() {
+		loadSound();
+		setFrequency(360);
+		paused = false;
+	    round = 0;
 		keyState = new byte[0x10];
 		memory = new short[0x1000];
 		pc = 0x200; // The first 512 Bytes are occupied by the interprter
@@ -70,7 +92,7 @@ public class Chip8 {
 		for (int i = 0; i < chip8_fontset.length; i++){
 			memory[fontset_start + i] = chip8_fontset[i];
 		}
-		gui = new Chip8Gui();
+		gui = new Chip8Gui(this);
 
 		
 		SwingUtilities.invokeLater(new Runnable() {
@@ -82,9 +104,22 @@ public class Chip8 {
 				}
 		});
 		
+	
 		
 
 	}
+	
+	
+	public void setPaused(){
+		paused = !paused;
+		
+	}
+	
+	public void setFrequency(int f){ //f = 60, 120, 180, 240, 300, 360Hz
+		cycleDurationTime = (long)(1000000000/f);
+		updateTimersAfterCycle = (short) (f/60);
+	}
+	
 
 	private void copyInScreen(byte[][] sprite, short height, short X, short Y) {
 		V[0xF] = 0;
@@ -247,11 +282,12 @@ public class Chip8 {
 				V[0xF] = (short) (V[x] < V[y]?0:1);
 				V[x] = (short) ((V[x] - V[y]) & 0xFF);
 				break;
-			// Shifts VX right by one. VF is set to the value of the least
-			// significant bit of VX before the shift.[2]
+			/* 8XY6 	Store the value of register VY shifted right one bit in register VX
+			 * Set register VF to the least significant bit prior to the shift
+			 */
 			case 0x6:
-				V[0xF] = (short) (V[x] & 0x01);
-				V[x] = (short) ((V[x] >> 1) & 0xFF);
+				V[0xF] = (short) (V[y] & 0x01);
+				V[x] = (short) ((V[y] >> 1) & 0xFF);
 				break;
 			// Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and
 			// 1 when there isn't. Vx = Vy-Vx
@@ -259,11 +295,11 @@ public class Chip8 {
 				V[0xF] = (short) (V[x] > V[y]?0:1);
 				V[x] = (short) ((V[y]-V[x]) & 0xFF);
 				break;
-			// Shifts VX left by one. VF is set to the value of the most
-			// significant bit of VX before the shift.[2]
+			// 8XYE 	Store the value of register VY shifted left one bit in register VX
+			//	Set register VF to the most significant bit prior to the shift
 			case 0xE:
-				V[0xF] = (short) ((V[x] & 0x80) >> 7); // 0x8 == 1000 -> most significant bit
-				V[x] = (short) ((V[x] << 1) & 0xFF);
+				V[0xF] = (short) ((V[y] & 0x80) >> 7); // 0x8 == 1000 -> most significant bit
+				V[x] = (short) ((V[y] << 1) & 0xFF);
 				break;
 			default:
 				System.err.printf("opcode %04X not known", opcode);
@@ -284,7 +320,7 @@ public class Chip8 {
 			break;
 		// Jumps to the address NNN plus V0.
 		case 0xB000:
-			pc = getNNN() + V[0];
+			pc = (getNNN() + V[0]) & 0xFFF;
 			break;
 		case 0xC000:
 			x = getX();
@@ -368,8 +404,11 @@ public class Chip8 {
 				Object o = new Object();
 				System.out.println("WAIT A KEY PRESS!!!");
 				gui.waitKeyPress(o);
-				o.wait();
+				synchronized(o){
+					o.wait();
+				}
 				V[x] = (short) gui.getLastKeyPressed();
+				System.out.printf("V[%X] set to %2X", x, V[x]);
 				break;
 			// FX15 Sets the delay timer to VX.
 			case 0x0015:
@@ -381,7 +420,7 @@ public class Chip8 {
 				break;
 			// Adds VX to I
 			case 0x001E:
-				I += V[x];
+				I = (I + V[x]) & 0xFFF;
 				break;
 			// Sets I to the location of the sprite for the character in VX.
 			// Characters 0-F (in hexadecimal) are represented by a 4x5 font.
@@ -403,19 +442,26 @@ public class Chip8 {
 				memory[I + 2] = (short) (V[x] % 10);
 				memory[I + 1] = (short) ((V[x] / 10) % 10);
 				memory[I] = (short) ((V[x] / 100) % 10);
+				System.out.println(V[x] + ":::" + memory[I] + "" + memory[I+1] + "" + memory[I+2]);
 
 				break;
 			// Stores V0 to VX in memory starting at address I.
 			case 0x0055:
 				for (int i = 0; i < x; i++)
-					memory[I + i] = V[i];
-
+					memory[(I + i) & 0xFFF] = V[i];
+				I = (I + x + 1) & 0xFFF;
 				break;
 			// Fills V0 to VX with values from memory starting at address I
 			case 0x0065:
-				for (int i = 0; i < x; i++)
-					V[i] = memory[I + i];
+				for (int i = 0; i < x; i++) {
+					System.out.printf("Fx65V[%X] = %02X", i, V[i]);
+					V[i] = memory[(I + i) & 0xFFF];
+					System.out.printf("Fx65V[%X] = %02X", i, V[i]);
 
+				}
+				I = (I + x + 1) & 0xFFF;
+				System.out.printf("F%X65 = I = %03X", x, I);
+			
 				break;
 
 			}
@@ -427,6 +473,19 @@ public class Chip8 {
 		
 	}
 	
+	private void updateTimers(){
+		// Update timers
+				if (delay_timer > 0)
+					delay_timer--;
+				if (sound_timer > 0) {
+					if (sound_timer == 1){
+						System.out.println("beep");
+						beep();
+					}
+					--sound_timer;
+				}
+	}
+	
 	
 	public void emulateCycle() throws Exception {
 		opcode = memory[pc] << 8 | memory[pc+1];
@@ -434,16 +493,10 @@ public class Chip8 {
 		pc += 2;
 		executeOpcode();
 
-		// Update timers
-		if (delay_timer > 0)
-			delay_timer--;
-		if (sound_timer > 0) {
-			if (sound_timer == 1){
-				System.out.println("beep");
-				beep();
-			}
-			--sound_timer;
-		}
+		if(round == 0)
+			updateTimers();
+		
+		round = (byte)((round + 1)%updateTimersAfterCycle);
 		
 		
 
@@ -451,6 +504,47 @@ public class Chip8 {
 	
 	public void storeKeyState(){
 		keyState = gui.getKeyState();
+	}
+	
+	public void mainLoop(){
+		while (!this.isFinished()) {
+			while(paused){
+				try {
+					Thread.sleep(400);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			long start = System.nanoTime();
+			try {
+				this.emulateCycle();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			if (isToDraw()) {
+				repaint();
+				setToDraw(false);
+			}
+			storeKeyState();
+			
+				
+		
+			try{	
+				//The cycle last 1s/240 (240 Hz) 
+				long toWait = cycleDurationTime -  (System.nanoTime() - start);
+				if(toWait > 0){
+
+					long millis = (long)(toWait/1000000);
+					long nano = (long)toWait%1000000;
+					
+					Thread.sleep(millis, (int) nano);
+				}
+				
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+		}
 	}
 	
 	public void loadGameIntoMemory(String source) {
@@ -466,6 +560,7 @@ public class Chip8 {
 				l.add(first);
 				l.add(second);
 			}
+			
 		}
 		System.out.println();
 		for (int i = 0; i < l.size(); i++) {
@@ -475,6 +570,18 @@ public class Chip8 {
 		last_index = 0x200 + l.size();
 		for(int i = 0x200; i < last_index; i+= 2){
 			System.out.printf("mem[%03X-%03X] = %02X%02X\n", i, i+1, memory[i], memory[i+1]);
+		}
+		
+		for(int i = 0x200; i < last_index; i+=2){
+			opcode = memory[i] << 8 | memory[i+1];
+			if(getX() == 2)
+				System.out.printf("X:::%04X\n",opcode);
+
+			if(getY() == 2)
+				System.out.printf("Y:::%04X\n",opcode);
+			if((opcode & 0xF0FF) == 0xF033)
+				System.out.printf("Fx29:::%04X\n",opcode);
+
 		}
 		
 		s.close();
@@ -515,13 +622,6 @@ public class Chip8 {
 	public void beep(){
 	
 			try{
-				File f = new File("./Sound/beep.wav");
-			    System.out.println(f.getAbsolutePath());
-
-			    AudioInputStream audioInputStream =
-			        AudioSystem.getAudioInputStream(f);
-			    Clip clip = AudioSystem.getClip();
-			    clip.open(audioInputStream);
 			    clip.start();
 			}
 			catch(Exception ex)
