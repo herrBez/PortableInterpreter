@@ -11,4 +11,6 @@ the following languages are supported:
             <li>Ook!</li>
             <li>Alphuck</li>
         </ul>
+    <li>Chip8 Language </li>
 </ul>
+
