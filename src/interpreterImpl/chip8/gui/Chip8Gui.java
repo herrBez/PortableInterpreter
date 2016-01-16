@@ -9,7 +9,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.Observable;
 
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -137,8 +136,11 @@ public class Chip8Gui  {
 		changeColor.add(new ChangeColor("BLUE/WHITE", Color.BLUE, Color.WHITE, board));
 		changeColor.addSeparator();
 		changeColor.add(new ChangeColor("BLUE/BLACK", Color.BLUE, Color.BLACK, board));
-		changeColor.addSeparator();		
-
+		changeColor.addSeparator();	
+		changeColor.add(new ChangeColor("RANDOM", board));
+		changeColor.addSeparator();
+		changeColor.add(new ChangeColor("PSYCHO", true, board));
+		changeColor.addSeparator();
 
 		
 		JMenuItem pauseItem = new JMenuItem("PAUSE");

@@ -32,6 +32,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
+
 public class Gui extends Observable {
 
 	private JFrame frame;
@@ -39,9 +40,11 @@ public class Gui extends Observable {
 	private JTextArea inputArea;
 	private JTextArea errorArea;
 	private JLabel result;
-
+	private JTextArea disassemblerArea;
+	private Gui g;
 	public Gui(String windowTitle) {
 		initUI(windowTitle);
+		g = this;
 	}
 
 	private void initUI(String windowTitle) {
@@ -55,14 +58,33 @@ public class Gui extends Observable {
 				SupportedInterpreter.values());
 		final JButton executeButton = new JButton("Excute");
 		final JButton cleanButton = new JButton("Clean All");
+		final JButton disassemblyButton = new JButton("Disassembly");
 		final JLabel errorLabel = new JLabel("ErrorLog");
+		final JLabel dissasemblerLabel = new JLabel("Disassembler");
 		result = new JLabel();
 		inputArea = new JTextArea(20, 50);
 		inputArea.setLineWrap(true);
 		contentArea = new JTextArea(20, 50);
+		
+	
+		
 		contentArea.setLineWrap(true);
 		errorArea = new JTextArea(20, 50);
+		disassemblerArea = new JTextArea(20,50);
+		disassemblerArea.setLineWrap(true);
+		
 		errorArea.setLineWrap(true);
+		disassemblyButton.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				InterpreterInterface i = InterpreterFactory
+						.createInterpreter((SupportedInterpreter) combo
+								.getSelectedItem());
+				System.out.println("RETRIEVING INPUT: " + contentArea.getText());
+				disassemblerArea.setText(i.disassebly(contentArea.getText()));
+			}
+		});
 		executeButton.addActionListener(new ActionListener() {
 
 			@Override
@@ -136,7 +158,6 @@ public class Gui extends Observable {
 						} catch (FileNotFoundException e1) {
 							e1.printStackTrace();
 						} catch (IOException e1) {
-							// TODO Auto-generated catch block
 							e1.printStackTrace();
 						}
 
@@ -209,11 +230,14 @@ public class Gui extends Observable {
 		pane.add(inputAreaPane);
 		pane.add(executeButton);
 		pane.add(cleanButton);
+		pane.add(disassemblyButton);
 		pane.add(outputLabel);
 		pane.add(errorLabel);
 		JScrollPane errorPane = new JScrollPane(errorArea);
 		pane.add(errorPane);
 		pane.add(result);
+		pane.add(dissasemblerLabel);
+		pane.add(new JScrollPane(disassemblerArea));
 
 		frame.setTitle(windowTitle);
 		frame.setLocationRelativeTo(null);
@@ -233,11 +257,14 @@ public class Gui extends Observable {
 		});
 	
 	}
+	
+	public void putDisassemblerText(String s){
+		disassemblerArea.setText(s);
+	}
 
 	public void putText(String s) {
 
 		contentArea.setText(s);
-
 	}
 
 	public void setVisible(boolean flag) {

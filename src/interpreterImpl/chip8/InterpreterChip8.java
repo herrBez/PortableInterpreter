@@ -58,4 +58,13 @@ public class InterpreterChip8 implements InterpreterInterface {
 		return "";
 	}
 
+
+
+	@Override
+	public String disassebly(String s) {
+		Chip8 c = new Chip8();
+		c.loadGameIntoMemory(s);
+		return c.disassembly();
+	}
+
 }

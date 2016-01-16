@@ -82,10 +82,14 @@ public class Controller implements Observer {
 	@Override
 	public void update(Observable o, Object arg) {
 		NotifierObject no = (NotifierObject) arg;
-		if (no.isBinary())
+		if (no.isBinary()){
 			g.putText(getBinaryFileContent(no.getFile()));
-		else
+		
+		}
+		else {
 			g.putText(getFileContent(no.getFile()));
+
+		}
 	}
 
 }

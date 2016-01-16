@@ -41,5 +41,13 @@ public abstract class BrainfuckDerivate implements InterpreterInterface{
 		return brainfuck.getOutput();
 	}
 
+	@Override
+	public String disassebly(String s) {
+		String code = toBrainFuckCode(s);
+		return brainfuck.disassebly(code);
+	}
+	
+	
+
 	
 }

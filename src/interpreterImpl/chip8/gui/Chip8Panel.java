@@ -21,10 +21,14 @@ public class Chip8Panel extends JPanel{
 	private Color foreground;
 	private Rectangle2D rec;
 	private Graphics2D g2d;
+	private boolean psycho;
 	public Chip8Panel(){
 		this(Color.BLACK, Color.WHITE);
 	}
 	
+	public void changePsycho(){
+		psycho = !psycho;
+	}
 	
 
 	public Chip8Panel(Color background, Color foreground){
@@ -35,6 +39,7 @@ public class Chip8Panel extends JPanel{
 		}
 		this.background = background;
 		this.foreground = foreground;
+		this.psycho = false;
 		rec = new Rectangle2D.Double(0, 0, Chip8.WIDTH*SQUARE_SIZE, Chip8.HEIGHT*SQUARE_SIZE);
 	}
 	
@@ -46,6 +51,8 @@ public class Chip8Panel extends JPanel{
         super.paintComponent(g);
         drawScreen(g);
     }
+	
+	
 	
 
 	
@@ -61,9 +68,15 @@ public class Chip8Panel extends JPanel{
         
         g2d.setPaint(background);
         g2d.fill(rec);
+       
+
         g2d.setPaint(foreground);
 
         for(int i = 0; i < screen.length; i++){
+        	 if(psycho){
+             	foreground = new Color((int)(Math.random()*0xFFFFFF));
+             	 g2d.setPaint(foreground);
+        	 }
         	if(screen[i] == 1){
         		 int row = ((int)(i / Chip8.WIDTH))*SQUARE_SIZE;
         		 int col = (i % Chip8.WIDTH)*SQUARE_SIZE;
@@ -79,6 +92,7 @@ public class Chip8Panel extends JPanel{
 	}
 
 	public void setForeground(Color foreground) {
+		psycho = false;
 		this.foreground = foreground;
 	}
 	

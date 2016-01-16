@@ -134,5 +134,32 @@ public class BrainFuck implements InterpreterInterface{
 		return errorLog.toString();
 	}
 
+	@Override
+	public String disassebly(String code) {
+		char [] cArray = code.toCharArray();
+		int inputIndex = 0;
+		int pointer = 0;
+		StringBuilder sb = new StringBuilder();
+		for(int i = 0; i < cArray.length; ++i){
+				char c = cArray[i];
+				switch(c){
+				case '>': sb.append("Pointer " + pointer + " += 1\n"); pointer++; break;
+				case '<': sb.append("Pointer " + pointer + " -= 1\n"); pointer--; break;
+				case '+': sb.append("array[" + pointer + "]++\n"); break;
+				case '-': sb.append("array[" + pointer + "]--\n"); break;
+				case ',': sb.append("array[" + pointer + "] = input.charAt( " + inputIndex + ")\n"); inputIndex++; break;
+				case '.': sb.append("Print: array[" + pointer + "]\n"); break;
+				case '[':
+					sb.append("New Loop\n");
+					break;
+				case ']':
+					sb.append("Close Loop\n"); //retrieve the position of the last open parenthesis
+					break;
+				}
+			}
+			
+			return sb.toString();
+	}
+
 	
 }

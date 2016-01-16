@@ -10,6 +10,9 @@ public interface InterpreterInterface {
 	 * @param inputString
 	 */
 	public boolean interpret(File f, String inputString);
+	
+	public String disassebly(String s);
+	
 	/**
 	 * 
 	 * @param s
