@@ -23,7 +23,7 @@ public class InterpreterChip8 implements InterpreterInterface {
 	@Override
 	public boolean interpret(String s, String inputString) {
 		System.out.println("INTERPRETER BITCH");
-		Chip8 c = new Chip8();
+		final Chip8 c = new Chip8();
 		c.loadGameIntoMemory(s);
 		
 		
