@@ -12,7 +12,7 @@ public class ChangeColor extends JMenuItem {
 	 */
 	
 	private static final long serialVersionUID = 1L;
-	public ChangeColor(String title, Color foreground, Color background, Chip8Panel c8p) {
+	public ChangeColor(String title, final Color foreground, final Color background, final Chip8Panel c8p) {
 		super(title);
 		this.addActionListener(new ActionListener() {
 			

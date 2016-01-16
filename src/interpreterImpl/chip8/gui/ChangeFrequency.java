@@ -9,10 +9,9 @@ import javax.swing.JMenuItem;
 
 public class ChangeFrequency extends JMenuItem{
 	private static final long serialVersionUID = 1L;
-	public ChangeFrequency(String title, Chip8 c, int frequency) {
+	public ChangeFrequency(String title, final Chip8 c, final int frequency) {
 		super(title);
 		this.addActionListener(new ActionListener() {
-			
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				c.setFrequency(frequency);

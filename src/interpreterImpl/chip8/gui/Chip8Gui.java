@@ -32,7 +32,7 @@ public class Chip8Gui  {
 	};
 	private byte[] keyState;
 
-	public Chip8Gui(Chip8 c) {
+	public Chip8Gui(final Chip8 c) {
 		paused = false;
 		keyState = new byte[16];
 		lock = null;
@@ -201,9 +201,9 @@ public class Chip8Gui  {
 
 	
 	public static void main(String[] args) throws InterruptedException {
-		Chip8Gui g = new Chip8Gui(new Chip8());
+		final Chip8Gui g = new Chip8Gui(new Chip8());
 		g.setVisible(true);
-		byte[] screen = new byte[64 * 32];
+		final byte[] screen = new byte[64 * 32];
 		for (int k = 0; k < 10; k++) {
 			for (int i = 0; i < screen.length; i++) {
 				screen[i] = (byte) ((Math.random() * 100) % 2);
