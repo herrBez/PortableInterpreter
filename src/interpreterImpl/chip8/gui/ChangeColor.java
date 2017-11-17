@@ -24,7 +24,7 @@ public class ChangeColor extends JMenuItem {
 		});
 	}
 	
-	public ChangeColor(String title, Chip8Panel c8p) {
+	public ChangeColor(String title, final Chip8Panel c8p) {
 		super(title);
 		this.addActionListener(new ActionListener() {
 			
@@ -33,8 +33,8 @@ public class ChangeColor extends JMenuItem {
 				
 					Color background, foreground;
 					
-						background = new Color((int)(Math.random()*0xFFFFFF));
-						foreground = new Color((int) (Math.random() * 0xFFFFFF));
+					background = new Color((int)(Math.random()*0xFFFFFF));
+					foreground = new Color((int) (Math.random() * 0xFFFFFF));
 					
 					c8p.setBackground(background);
 					c8p.setForeground(foreground);
