@@ -9,7 +9,7 @@ i.e. by using Java.
 
 At the moment of writing this README
 the following languages are supported:
-* Item Brainfuck and its derivates:
+* Brainfuck and its derivates:
     - Ook!
     - Alphuck
 * Chip8 Language
