@@ -1,17 +1,14 @@
-<h1>Open Source Portable Interpreter</h1>
-<img src="https://travis-ci.org/herrBez/PortableInterpreter.svg?branch=master"/>
+# Open Source Portable Interpreter
+
+![build passing?](https://travis-ci.org/herrBez/PortableInterpreter.svg?branch=master)
 The aim of this project is to develop an interpreter, capable
 of interpret the biggest number of languages in a portable way,
 i.e. by using Java. 
 
 At the moment of writing this README
 the following languages are supported:
-<ul>
-    <li>Brainfuck and its derivates:</li>
-        <ul>
-            <li>Ook!</li>
-            <li>Alphuck</li>
-        </ul>
-    <li>Chip8 Language </li>
-</ul>
+* Item Brainfuck and its derivates:
+    1. Ook!
+    2. Alphuck
+* Chip8 Language
 
